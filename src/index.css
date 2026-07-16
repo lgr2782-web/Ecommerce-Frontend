@@ -1,13 +1,22 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@media print {
+  /* Oculta absolutamente todo el sitio web en la impresión */
+  body * {
+    visibility: hidden;
+  }
+  /* Muestra únicamente la sección designada para la Factura */
+  .id-print-section, .id-print-section * {
+    visibility: visible;
+  }
+  .id-print-section {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none;
+    padding: 0;
+  }
+  /* Asegura ocultar botones de acción de la factura */
+  .no-print {
+    display: none !important;
+  }
 }
