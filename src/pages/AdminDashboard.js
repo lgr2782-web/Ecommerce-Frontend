@@ -19,6 +19,10 @@ import {
   UserCheck
 } from 'lucide-react';
 
+// --- Configuración Dinámica de la URL de la API ---
+// Detecta la variable de entorno de Vite; si no existe, usa por defecto el localhost
+const API_URL = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-qf6n.onrender.com/api/v1';
+
 const AdminDashboard = () => {
   const { user, token } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('products');
@@ -64,7 +68,7 @@ const AdminDashboard = () => {
   // --- Peticiones API ---
   const fetchDashboardStats = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/v1/admin/dashboard', {
+      const response = await axios.get(`${API_URL}/admin/dashboard`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data);
@@ -76,44 +80,52 @@ const AdminDashboard = () => {
 
   const fetchSinpeOrders = async () => {
     try {
-      setOrders([
-        { id: 101, customer: 'Juan Pérez Solano', total: 29900, reference: '202607149984', status: 'Pendiente de Verificación' },
-        { id: 102, customer: 'María Alfaro Rojas', total: 5500, reference: '202607141122', status: 'Pendiente de Verificación' },
-        { id: 103, customer: 'Carlos Mendoza Q.', total: 12000, reference: '202607130054', status: 'Pagado y Listo para Envío' }
-      ]);
+      // ✅ Petición real al backend con cabecera de seguridad
+      const response = await axios.get(`${API_URL}/admin/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setOrders(response.data);
     } catch (error) {
-      console.error('Error al cargar órdenes SINPE', error);
+      console.error('Error al cargar órdenes de la base de datos', error);
     }
   };
 
   const fetchCompanyProfile = async () => {
     try {
-      setCompanyForm({
-        name: 'Mercadito Pyme S.A.',
-        cedula_juridica: '3-101-789456',
-        email: 'soporte@mercaditopyme.cr',
-        phone: '2200-1122',
-        address: 'Avenida Segunda, de la Catedral Metropolitana 150m Oeste, San José, Costa Rica'
+      // ✅ Petición real al backend con cabecera de seguridad
+      const response = await axios.get(`${API_URL}/admin/company`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
+      setCompanyForm(response.data);
     } catch (error) {
-      console.error('Error al cargar perfil de empresa', error);
+      console.error('Error al cargar perfil de empresa de la base de datos', error);
     }
   };
 
-  const fetchStaffList = async () => {
-    try {
-      setStaff([
-        { id: 1, name: 'Administrador Pyme', email: 'admin@pyme.cr', role: 'Administrador', is_active: true },
-        { id: 2, name: 'Andrés Colaborador', email: 'andres@pyme.cr', role: 'Colaborador', is_active: true }
-      ]);
-    } catch (error) {
-      console.error('Error al cargar personal', error);
-    }
-  };
+  
+
+const fetchStaffList = async () => {
+  try {
+    // 1. Hacemos la petición GET real al endpoint de usuarios de tu API
+    const response = await axios.get(`${API_URL}/admin/users`, {
+      headers: { Authorization: `Bearer ${token}` } // Enviamos el token para que el backend nos dé permiso
+    });
+    
+    // 2. Guardamos en el estado los usuarios reales de la base de datos
+    setStaff(response.data);
+  } catch (error) {
+    console.error('Error al cargar personal de la base de datos', error);
+    
+    // Backup temporal ("quemado") solo por si el servidor falla o no responde
+    /*setStaff([
+      { id: 1, name: 'Administrador Pyme (Local)', email: 'admin@pyme.cr', role: 'Administrador', is_active: true }
+    ]);*/
+  }
+};
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/v1/categories'); 
+      const response = await axios.get(`${API_URL}/categories`); 
       setCategories(response.data);
     } catch (error) {
       console.error('Error al obtener categorías', error);
@@ -128,7 +140,7 @@ const AdminDashboard = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/v1/shop/products');
+      const response = await axios.get(`${API_URL}/shop/products`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error al cargar productos de administración', error);
@@ -155,12 +167,12 @@ const AdminDashboard = () => {
 
     try {
       if (editingProductId) {
-        await axios.put(`http://localhost:5000/api/v1/products/${editingProductId}`, formData, {
+        await axios.put(`${API_URL}/products/${editingProductId}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setMessage('✅ Producto actualizado con éxito.');
       } else {
-        await axios.post('http://localhost:5000/api/v1/products', formData, {
+        await axios.post(`${API_URL}/products`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setMessage('✅ Producto creado y publicado con éxito.');
@@ -200,7 +212,7 @@ const AdminDashboard = () => {
   const handleDeleteProduct = async (id, name) => {
     if (window.confirm(`¿Está seguro de que desea eliminar permanentemente el producto "${name}"?`)) {
       try {
-        await axios.delete(`http://localhost:5000/api/v1/products/${id}`, {
+        await axios.delete(`${API_URL}/products/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setMessage(`🗑️ El producto "${name}" fue eliminado del sistema.`);
@@ -219,14 +231,14 @@ const AdminDashboard = () => {
       if (editingCategoryId) {
         // Enviar datos en formato JSON plano usando las variables del backend
         await axios.put(
-          `http://localhost:5000/api/v1/categories/${editingCategoryId}`, 
+          `${API_URL}/categories/${editingCategoryId}`, 
           categoryForm, // Envía { name, descripcion }
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setMessage('✅ Categoría actualizada con éxito.');
       } else {
         await axios.post(
-          'http://localhost:5000/api/v1/categories', 
+          `${API_URL}/categories`, 
           categoryForm, 
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -257,7 +269,7 @@ const AdminDashboard = () => {
   const handleDeleteCategory = async (id, name) => {
     if (window.confirm(`¿Desea desactivar la categoría "${name}"? Se desasociará de los productos vinculados.`)) {
       try {
-        await axios.delete(`http://localhost:5000/api/v1/categories/${id}`, {
+        await axios.delete(`${API_URL}/categories/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setMessage(`🗑️ Categoría "${name}" desactivada con éxito.`);
@@ -656,7 +668,7 @@ const AdminDashboard = () => {
                     <button 
                       type="button" 
                       onClick={cancelCategoryEdit} 
-                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-3 rounded text-sm uppercase transition-colors"
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-2 rounded text-sm transition-colors"
                     >
                       Cancelar
                     </button>
@@ -665,14 +677,14 @@ const AdminDashboard = () => {
               </form>
             </div>
 
-            {/* Listado de Categorías de la Tienda */}
-            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <h2 className="text-lg font-bold text-gray-800 mb-4">Categorías Disponibles</h2>
+            {/* Listado de Categorías */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 lg:col-span-2">
+              <h2 className="text-lg font-bold text-gray-800 mb-4">Categorías Existentes</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50 text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                      <th className="p-3">Nombre</th>
+                      <th className="p-3">Categoría</th>
                       <th className="p-3">Descripción</th>
                       <th className="p-3 text-center">Acciones</th>
                     </tr>
@@ -694,7 +706,7 @@ const AdminDashboard = () => {
                             <button
                               onClick={() => handleDeleteCategory(cat.id, cat.name)}
                               className="text-red-600 hover:text-red-800 p-1 border border-red-100 rounded hover:bg-red-50"
-                              title="Desactivar categoría"
+                              title="Eliminar categoría"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -708,8 +720,7 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
-
-        {/* TAB 5: GESTIÓN DE PERSONAL */}
+         {/* TAB 5: GESTIÓN DE PERSONAL */}
         {activeTab === 'users' && user?.role === 'Administrador' && (
           <div className="space-y-6 max-w-5xl">
             <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100">
@@ -814,7 +825,6 @@ const AdminDashboard = () => {
             )}
           </div>
         )}
-
         {/* TAB 6: CONFIGURACIÓN DE LA EMPRESA */}
         {activeTab === 'config' && user?.role === 'Administrador' && (
           <div className="max-w-3xl bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100">
@@ -851,7 +861,6 @@ const AdminDashboard = () => {
             </form>
           </div>
         )}
-
       </main>
     </div>
   );

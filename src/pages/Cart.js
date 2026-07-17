@@ -4,6 +4,10 @@ import { AuthContext } from '../context/AuthContext';
 import { Trash2 } from 'lucide-react'; // Importamos un ícono de basurero limpio
 import axios from 'axios';
 
+// --- Configuración Dinámica de la URL de la API ---
+// Detecta la variable de entorno de Create React App (process.env)
+const API_URL = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-qf6n.onrender.com/api/v1';
+
 const Cart = () => {
   // 1. Extraemos 'removeFromCart' de tu CartContext
   const { cart, total, clearCart, removeFromCart } = useContext(CartContext);
@@ -14,7 +18,7 @@ const Cart = () => {
   const pymeSinpeTelefono = "8888-9999";
   const pymeTitular = "Mercadito Pyme S.A.";
 
-const handleCheckout = async (e) => {
+  const handleCheckout = async (e) => {
     e.preventDefault();
     if (!reference.trim()) {
       alert("Por favor, ingrese el número de comprobante SINPE.");
@@ -32,7 +36,8 @@ const handleCheckout = async (e) => {
         payment_status: 'Pendiente de Verificación'
       };
 
-      await axios.post('http://localhost:5000/api/v1/orders', orderData, {
+      // Reemplazamos el localhost directo por nuestra variable dinámica API_URL
+      await axios.post(`${API_URL}/orders`, orderData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

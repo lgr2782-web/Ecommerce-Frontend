@@ -3,6 +3,10 @@ import axios from 'axios';
 
 export const AuthContext = createContext();
 
+// --- Configuración Dinámica de la URL de la API ---
+// Detecta la variable de entorno de Create React App (process.env)
+const API_URL = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-qf6n.onrender.com/api/v1';
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
@@ -22,7 +26,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/v1/auth/login', { email, password });
+      // Reemplazado localhost por la constante API_URL
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
       const { token, user } = response.data;
       
       localStorage.setItem('token', token);
@@ -38,7 +43,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      await axios.post('http://localhost:5000/api/v1/auth/register', { name, email, password });
+      // Reemplazado localhost por la constante API_URL
+      await axios.post(`${API_URL}/auth/register`, { name, email, password });
       return { success: true };
     } catch (error) {
       return { success: false, error: error.response?.data?.message || 'Error en el registro' };
