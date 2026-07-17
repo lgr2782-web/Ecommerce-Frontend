@@ -1,133 +1,139 @@
-import React, { useContext, useState } from 'react';
-import { CartContext } from '../context/CartContext';
-import { AuthContext } from '../context/AuthContext';
-import { Trash2 } from 'lucide-react'; // Importamos un ícono de basurero limpio
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { CartContext } from '../context/CartContext';
+import { ShoppingCart, Search, CheckCircle } from 'lucide-react'; // Añadimos ícono de confirmación
 
-// --- Configuración Dinámica de la URL de la API ---
-// Detecta la variable de entorno de Create React App (process.env)
+// === Configuración Dinámica de la URL de la API ===
 const API_URL = process.env.REACT_APP_API_URL || 'https://ecommerce-backend-qf6n.onrender.com/api/v1';
+const BACKEND_BASE_URL = API_URL.replace('/api/v1', '');
 
-const Cart = () => {
-  // 1. Extraemos 'removeFromCart' de tu CartContext
-  const { cart, total, clearCart, removeFromCart } = useContext(CartContext);
-  const { token } = useContext(AuthContext);
-  const [reference, setReference] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+const Shop = () => {
+  const [products, setProducts] = useState([]);
+  const [search, setSearch] = useState('');
+  const { addToCart } = useContext(CartContext);
+  
+  // 👇 NUEVO: Estado para controlar el mensaje flotante de éxito
+  const [toastMessage, setToastMessage] = useState('');
 
-  const pymeSinpeTelefono = "8888-9999";
-  const pymeTitular = "Mercadito Pyme S.A.";
+  useEffect(() => {
+    fetchProducts();
+  }, [search]);
 
-  const handleCheckout = async (e) => {
-    e.preventDefault();
-    if (!reference.trim()) {
-      alert("Por favor, ingrese el número de comprobante SINPE.");
-      return;
-    }
-
+  const fetchProducts = async () => {
     try {
-      // Enviamos explícitamente 'total' y 'total_amount' con el valor del carrito
-      const orderData = {
-        items: cart,
-        total: total || 0,
-        total_amount: total || 0, // Así nos aseguramos de que no falte
-        payment_method: 'SINPE Móvil',
-        transaction_reference: reference,
-        payment_status: 'Pendiente de Verificación'
-      };
-
-      // Reemplazamos el localhost directo por nuestra variable dinámica API_URL
-      await axios.post(`${API_URL}/orders`, orderData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setSuccessMsg('🎉 ¡Pedido registrado! Su pago está en revisión.');
-      clearCart();
-      setReference('');
+      const response = await axios.get(`${API_URL}/shop/products?search=${search}`);
+      setProducts(response.data);
     } catch (error) {
-      alert('Error al procesar el pedido.');
+      console.error('Error al cargar productos de la tienda', error);
     }
   };
 
-  if (successMsg) {
-    return (
-      <div className="max-w-xl mx-auto my-12 p-8 bg-green-50 rounded-xl text-center shadow-md">
-        <h2 className="text-2xl font-bold text-green-800 mb-3">{successMsg}</h2>
-        <p className="text-gray-600">El comercio verificará la transferencia y procederá con su envío.</p>
-      </div>
-    );
-  }
+  // 👇 NUEVO: Función mejorada para añadir al carrito y activar la alerta flotante
+  const handleAddToCart = (product) => {
+    addToCart(product);
+    setToastMessage(`🛒 ¡"${product.name}" agregado al carrito con éxito!`);
+    
+    // El mensaje desaparecerá automáticamente después de 2.5 segundos
+    setTimeout(() => {
+      setToastMessage('');
+    }, 2500);
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-8 font-sans">
-      {/* Lado Izquierdo: Lista de Productos en Carrito */}
-      <div>
-        <h2 className="text-xl font-bold mb-4 text-gray-800">Tu Carrito</h2>
-        {cart.length === 0 ? (
-          <p className="text-gray-500 bg-gray-50 p-4 rounded-lg border border-dashed text-center">El carrito está vacío actualmente.</p>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 relative">
+      
+      {/* 👇 NUEVO: Componente Visual del Mensaje Flotante (Toast) */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-xl shadow-2xl border border-gray-800 animate-bounce max-w-sm">
+          <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
+          <p className="text-sm font-medium">{toastMessage}</p>
+        </div>
+      )}
+
+      {/* Encabezado y buscador */}
+      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900">Comercios de Costa Rica 🇨🇷</h1>
+          <p className="text-gray-600 mt-1">Apoya a las PYMEs nacionales comprando directo aquí</p>
+        </div>
+        
+        {/* Buscador */}
+        <div className="relative w-full md:w-96">
+          <input
+            type="text"
+            placeholder="Buscar productos..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
+        </div>
+      </div>
+
+      {/* Grid de Productos */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {products.length === 0 ? (
+          <p className="col-span-full text-gray-500 text-center bg-white p-6 rounded-lg border border-dashed">
+            No se encontraron productos disponibles en este momento.
+          </p>
         ) : (
-          <div className="space-y-4">
-            {cart.map(item => (
-              <div key={item.id} className="flex justify-between items-center border-b pb-3 pt-1">
-                <div className="flex-1 pr-4">
-                  <p className="font-semibold text-gray-800">{item.name}</p>
-                  <p className="text-xs text-gray-500">Cantidad: {item.quantity} x ₡{(item.price || 0).toLocaleString()}</p>
+          products.map((product) => {
+            const hasDiscount = parseFloat(product.discount_price) > 0;
+            const displayPrice = hasDiscount ? product.discount_price : product.price;
+
+            let imageSource = 'https://placehold.co/300';
+            if (product.image_url) {
+              imageSource = product.image_url.startsWith('http') 
+                ? product.image_url 
+                : `${BACKEND_BASE_URL}${product.image_url}`;
+            }
+
+            return (
+              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col justify-between">
+                <div>
+                  <img
+                    src={imageSource}
+                    alt={product.name}
+                    className="w-full h-48 object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null; 
+                      e.target.src = 'https://placehold.co/300';
+                    }}
+                  />
+                  <div className="p-4">
+                    <h3 className="text-lg font-bold text-gray-800">{product.name}</h3>
+                    <p className="text-gray-600 text-sm mt-1 line-clamp-2">{product.description}</p>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <span className="font-bold text-gray-900">₡{((item.price || 0) * (item.quantity || 0)).toLocaleString()}</span>
+
+                <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+                  <div>
+                    {hasDiscount && (
+                      <span className="text-xs line-through text-red-500 mr-2">
+                        ₡{Number(product.price).toLocaleString('es-CR')}
+                      </span>
+                    )}
+                    <span className="text-xl font-extrabold text-blue-600">
+                      ₡{Number(displayPrice).toLocaleString('es-CR')}
+                    </span>
+                  </div>
                   
-                  {/* BOTÓN ELIMINAR ARTÍCULO */}
-                  <button 
-                    onClick={() => removeFromCart(item.id)} 
-                    className="text-red-500 hover:text-red-700 p-1.5 rounded-md hover:bg-red-50 transition-colors"
-                    title="Eliminar del carrito"
+                  {/* 👇 CAMBIADO: Ahora llama a handleAddToCart en lugar de addToCart directamente */}
+                  <button
+                    onClick={() => handleAddToCart(product)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg flex items-center justify-center transition-colors"
+                    title="Añadir al carrito"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <ShoppingCart className="w-5 h-5" />
                   </button>
                 </div>
               </div>
-            ))}
-            
-            <div className="flex justify-between items-center text-lg font-black pt-4 text-gray-950 border-t border-gray-200">
-              <span>Total a pagar:</span>
-              <span className="text-xl text-blue-900">₡{(total || 0).toLocaleString()}</span>
-            </div>
-          </div>
+            );
+          })
         )}
       </div>
-
-      {/* Lado Derecho: Instrucciones y Formulario de Pago SINPE */}
-      {cart.length > 0 && (
-        <div className="bg-white p-6 rounded-xl shadow-md border border-blue-100 h-fit">
-          <h3 className="text-lg font-bold text-blue-900 mb-4">Pago por SINPE Móvil 🇨🇷</h3>
-          
-          <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-950 space-y-2 mb-6">
-            <p>1. Realice la transferencia desde la app de su banco al número:</p>
-            <p className="text-base font-extrabold text-center bg-white py-1 rounded border border-blue-200 text-blue-600 font-mono">{pymeSinpeTelefono}</p>
-            <p>2. A nombre de: <strong>{pymeTitular}</strong></p>
-            <p>3. Monto exacto a transferir: <strong className="text-red-600">₡{(total || 0).toLocaleString()}</strong></p>
-          </div>
-
-          <form onSubmit={handleCheckout} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase text-gray-600 mb-1">Número de Comprobante / Referencia</label>
-              <input 
-                type="text" 
-                required 
-                placeholder="Ej: 20260714..."
-                value={reference} 
-                onChange={(e) => setReference(e.target.value)}
-                className="w-full p-2.5 border rounded-md focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-              />
-            </div>
-            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-colors shadow-sm text-sm uppercase tracking-wider">
-              Confirmar Transferencia y Pedido
-            </button>
-          </form>
-        </div>
-      )}
     </div>
   );
 };
 
-export default Cart;
+export default Shop;
